@@ -26,9 +26,9 @@ parsePair p ord = lookAhead pair <* p where
              <*> (M.singleton <$> p <*> pure 1)
 
 word :: Parser T.Text
-word = T.singleton <$> char '\NUL' <|>
-       T.append <$> A.takeWhile1 isWordChar <*> A.takeWhile isSpace where
-         isWordChar = (&&) <$> not . isSpace <*> (/= '\NUL')
+word =  T.singleton <$> char '\NUL'
+    <|> T.append <$> A.takeWhile1 isWordChar <*> A.takeWhile isSpace where
+          isWordChar = (&&) <$> not . isSpace <*> (/= '\NUL')
 
 buildChain :: Token -> Int -> T.Text -> Chain
 buildChain tok ord input =
@@ -47,14 +47,13 @@ shiftPrefix tok prefix suffix = prefix' `T.append` suffix where
 
 markovGen :: MarkovGen
 markovGen = do
-  (g, prefix) <- get
+  (g, prefix)    <- get
   (token, chain) <- ask
-  let suffMap    = chain M.! prefix
-      totalFreq  = M.foldr (+) 0 suffMap
-      (rand, g') = randomR (1, totalFreq) g
-      suffMap'   = snd $ M.mapAccum (\a b -> (a + b, a + b)) 0 suffMap
-      suffix     = fst . M.findMin . M.filter (>= rand) $ suffMap'
-      prefix'    = shiftPrefix token prefix suffix
+  let suffMap           = chain M.! prefix
+      (total, suffMap') = M.mapAccum (\a b -> (a + b, a + b)) 0 suffMap
+      (rand, g')        = randomR (1, total) g
+      suffix            = fst . M.findMin . M.filter (>= rand) $ suffMap'
+      prefix'           = shiftPrefix token prefix suffix
   liftIO $ T.putStr suffix
   put (g', prefix')
 
